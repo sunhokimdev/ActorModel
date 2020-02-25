@@ -1,0 +1,63 @@
+﻿using Akka.Actor;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MireroService.ActorService
+{
+    //===================================================================
+    // /user Actor 장애 처리 전략 클래스
+    //===================================================================
+    //
+    // Why?
+    // /user 기본 장애 처리 전략에서는 OutOfMemoryException 예외에 대한 GC 호출 기능이 없다.
+    // 메모리 회수를 위해 OutOfMemoryException 예외일 때는 명시적으로 GC 호출 기능을 추가한다.
+    //
+    // What?
+    // OutOfMemoryException 예외를 제외한 모든 예외는 기본 장애 처리 전략을 사용한다.
+    // 기본 장애 처리 전략은 OneForOneStrategy이다.
+    // - OneForOneStrategy은 Exception일 때 Actor을 Restart 시킨다.
+    // - OneForOneStrategy은 ActorInitializationException(생성자에서 발생된 예외)일 때 Actor을 중지 시킨다.
+    //
+    // How?
+    // - App.config에서 HOCON 설정을 변경한다.
+    // - 변경된 HOCON 설정을 확인하기 위해 생성자 breakpoint로 
+    //   UserSupervisorStrategy 클래스 생성자가 호출되는지 확인한다.
+    // - 생성자가 디버그 과정에서 호출되면 정상적으로 Hocon이 설정된 것이다.
+    //
+    public sealed class UserSupervisorStrategy : SupervisorStrategyConfigurator
+    {
+        public UserSupervisorStrategy()
+        {
+            // 
+            // TODO: HOCON 설정 변경 후
+            //       여기에 breakpoint을 걸어 정상적으로 breakpoint가 호출되는지 확인한다.
+            //
+        }
+
+        public override SupervisorStrategy Create()
+        {
+            return new OneForOneStrategy((ex) =>
+            {
+                //
+                // INFO: OutOfMemoryException 예외일 때는 명시적으로 GC을 호출한다.
+                //      그외 예외는 Akka.NET에서 제공하는 기본 장애 처리 전략을 사용한다.
+                //
+                OutOfMemoryException outOfMemory = new OutOfMemoryException();
+                if (outOfMemory.GetType() == ex.GetType())
+                {
+                    GC.Collect();
+                }
+
+                //
+                // INFO: Akka.NET에서 제공하는 기본 장애 처리 전략은 다음과 같다.
+                //      - 액터 생성자에서 예외가 발생하면 Stop 시킨다.
+                //      - 메시지 처리 예외가 발생하면 Restart 시킨다.
+                //
+                return SupervisorStrategy.DefaultStrategy.Decider.Decide(ex);
+            });
+        }
+    }
+}

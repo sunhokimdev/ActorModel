@@ -1,0 +1,60 @@
+﻿using Akka.Event;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MireroService.ActorService
+{
+    //===================================================================
+    // 서비스 커맨드 라인 매개변수 데이터 클래스
+    //===================================================================
+    // 
+    // Why?
+    // 서비스는 커맨드 라인 매개변수를 처리할 수 있다.
+    // Topshelf에서 처리한 커맨드 라인 매개변수를 N개를 통합 관리한다.
+    //
+    // What?
+    // 서비스 커맨드 라인 매개변수를 정의한다.
+    // 서비스 커맨드 라인 매개변수 값을 로그로 출력한다.
+    //
+    // How?
+    // 서비스 커맨드 라인 매개변수로 입력 받은 데이터를 필드로 정의한다.
+    // ActorServiceConfigurator 클래스의 SetServiceCommandLine 함수에서 매개변수 값을 입력 받는다.
+    // 입력 받은 데이터는 ActorServiceHost 생성자에 전달된다.
+    //
+    // TODO: 서비스 커맨드 라인 매개변수가 필요 없다면 "ActorServiceCommandLine" 클래스 관련 모든 부분을 삭제 또는 주석처리하면 된다.
+    //      관련 부분
+    //      - ActorServiceCommandLine.cs 파일
+    //      - ActorServiceHost 클래스 생성자
+    //      - ActorServiceConfigurator 클래스 SetServiceCommandLine 함수
+    //      
+    public sealed class ActorServiceCommandLine
+    {
+        //
+        // TODO: 서비스 커맨드 라인 매개변수 데이터가 필요하면 아래 예제(Path, Frequency, Active)을 참고하여 구현한다.
+        //  예.
+        //      service.exe -path:"c:\temp" -frequency:2 --active
+        //
+        //      => string 값 받기 : Path은 "C:\temp"가 된다.
+        //      => int 값 받기: Frequency은 2가 된다.
+        //      => bool 값 받기: Active는 true가 된다.
+        //
+        public string Path { get; set; }
+
+        public int Frequency { get; set; }
+
+        public bool Active { get; set; }
+
+        //
+        // INFO: 서비스 커맨드 라인은 반드시 로그를 출력 한다.
+        //
+        public void Log(ILoggingAdapter logger)
+        {
+            logger.Info("Service Command Line - path: {0}", Path);
+            logger.Info("Service Command Line - frequency: {0}", Frequency);
+            logger.Info("Service Command Line - active: {0}", Active);
+        }
+    }
+}

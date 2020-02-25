@@ -1,0 +1,218 @@
+﻿using Akka.Configuration;
+using Akka.Configuration.Hocon;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using Topshelf;
+using Topshelf.HostConfigurators;
+
+namespace MireroService.ActorService
+{
+    //===================================================================
+    // Topshelf을 이용한 서비스 프로세스 클래스
+    //===================================================================
+    //
+    // Why?
+    // Topshelf을 이용하여 서비스 관련 모든 것을 처리한다.
+    //
+    // What?
+    // Topshef에 서비스 Start/Stop 이벤트를 처리할 클래스(ActorService)을 등록한다.
+    // 서피스 관련 기본 설정을 한다.
+    //  - 서비스 이벤트 처리: SetService
+    //  - 서비스 이름: SetServiceName
+    //  - 서비스 실행 계정: SetServiceIdentity
+    //  - 서비스 시작 모드: SetServiceStartMode
+    //  - 서비스 로그 활성화: SetServiceLogger
+    //  - 서비스 커맨드 라인 매개변수: SetServiceCommandLine
+    //
+    // How?
+    // 서비스 실행 계정(SetServiceIdentity)을 결정하여 기본 구현을 변경한다.
+    // 서비스 시작 모드(SetServiceStartMode)을 결정하여 기본 구현을 변경한다.
+    // 서비스 커맨드 라인 매개변수(SetServiceCommandLine)을 결정하여 기본 구현을 변경한다.
+    //
+    public sealed class ActorServiceConfigurator
+    {
+        private readonly Config _config;
+        private ActorServiceCommandLine _commandLine;
+
+        public ActorServiceConfigurator()
+        {
+            _config = ReadConfigurationFromFile();
+            _commandLine = new ActorServiceCommandLine();
+        }
+
+        public void Execute()
+        {
+            HostFactory.Run(hc =>
+            {
+                SetService(hc);
+                SetServiceName(hc);
+                SetServiceIdentity(hc);
+                SetServiceStartMode(hc);
+                SetServiceLogger(hc);
+                SetServiceCommandLine(hc);
+            });
+        }
+
+        private void SetService(HostConfigurator hc)
+        {
+            hc.Service<ActorServiceHost>(sc =>
+            {
+                sc.ConstructUsing(settings => new ActorServiceHost(_config, _commandLine));
+                sc.WhenStarted((s, c) => s.Start(c));
+                sc.WhenStopped((s, c) => s.Stop(c));
+            });
+        }
+
+        private void SetServiceName(HostConfigurator hc)
+        {
+            string serviceName = _config.GetString(HoconPaths.ServiceName);
+            string serviceDescription = _config.GetString(HoconPaths.ServiceDescription);
+
+            //
+            // INFO: 서비스 이름과 서비스 정보가 환경 설정에 없다면 서비스를 정상 실행 시키지 않는다.
+            //
+            if (string.IsNullOrWhiteSpace(serviceName))
+                throw new NullReferenceException(string.Format("{0} is empty in the configuration file.", HoconPaths.ServiceName));
+
+            if (string.IsNullOrWhiteSpace(serviceDescription))
+                throw new NullReferenceException(string.Format("{0} is empty in the configuration file.", HoconPaths.ServiceDescription));
+
+            hc.SetServiceName(serviceName);
+            hc.SetDisplayName(serviceName);
+            hc.SetDescription(serviceDescription);
+        }
+
+        private void SetServiceIdentity(HostConfigurator hc)
+        {
+            //
+            // TODO: 서비스 실행 계정을 설정한다.
+            //
+
+            // 사용자 계정과 패스워드로 실행시킨다.
+            //hc.RunAs("username", "password");
+
+            // 콘솔 앱에서 사용자 계정과 패스워드를 입력받아 실행시킨다.
+            //hc.RunAsPrompt();      
+
+            // 로컬 시스템 계정으로 실행시킨다.
+            //hc.RunAsLocalSystem();           
+
+            // 로컬 서비스 계정으로 실행시킨다.
+            //hc.RunAsLocalService();
+
+            // NETWORK_SERVICE 계정으로 실행 시킨다.
+            //hc.RunAsNetworkService();
+        }
+
+        private void SetServiceStartMode(HostConfigurator hc)
+        {
+            //
+            // TODO: 서비스 시작 모드를 설정한다.
+            //
+
+            //hc.StartAutomatically(); 
+            //hc.StartAutomaticallyDelayed();
+            //hc.StartManually();
+            //hc.Disabled();
+        }
+
+        private void SetServiceLogger(HostConfigurator hc)
+        {
+            hc.UseNLog();
+        }
+
+        private void SetServiceCommandLine(HostConfigurator hc)
+        {
+            //
+            // INFO: AddCommandLineDefinition 함수에 추가된 옵션 문자열은
+            //       "대/소문자"를 구분한다.
+            //
+            //  예.
+            //      -Path:"c:\temp"
+            //      -path:"c:\temp"         // Path와 path는 다르다.
+            //
+
+            //
+            // TODO: 서비스 시작할 때 Command Line 파라미터로 전달되는 값을 정의한다.
+            // TODO: Visual Studio 프로젝트 속성 
+            //       "Debug" > "Command Line Arguments"에 입력하면 디버깅 과정에서 확인할 수 있다.
+            //
+            // 예.
+            // service.exe -path:"c:\temp" -frequency:2 --active
+            //
+
+            //
+            // INFO: 서비스 Argument는 대/소문자를 구분한다.
+            //
+
+            // -path:"c:\temp"
+            hc.AddCommandLineDefinition("path", ci =>   
+            {
+                _commandLine.Path = ci.Trim();
+            });
+
+            // -frequency:2 
+            hc.AddCommandLineDefinition("frequency", ci =>
+            {
+                _commandLine.Frequency = int.Parse(ci);
+            });
+
+            // --active  
+            hc.AddCommandLineSwitch("active", ci =>
+            {
+                _commandLine.Active = ci;
+            });
+        }
+
+        //=======================================
+        // App.config 환경 설정 객체 만들기
+        //=======================================
+        //
+        // 환경 설정 값 확인 방법
+        // =>   불변 개념으로 akka HOCON 설정을 관리하기 때문에
+        //      akk.logging, akka.actor, ... 개별 section으로 데이터가 분리되어 있다.
+        //      
+        // FAQ 1. 디버그 과정에서 환경 설정 값(HOCON) 확인 방법
+        // =>   Root는 현재 section 값이다.
+        // =>   Fallbak을 통해 다음 section 값을 확인할 수 있다.
+        //
+        //configuration
+        //    Root                      // akka/akka.app
+        //    Fallback
+        //      Root					// akka/akka.logging
+        //      Fallback
+        //          Root				// akka/akka.actor
+        //          Fallback
+        //              Root			// akka/akka.remote
+        //              Fallback
+        //                  Root		// akka/akka.cluster
+        //                  Fallback
+        //                      Root	// akka/akka.petabridge
+        //
+        // FAQ 2. HOCON 설정이 중복되어 있을 때
+        // => 처음 찾는 section 값으로 처리한다.
+        //
+        public static Config ReadConfigurationFromFile()
+        {
+            var assemblyPath = new Uri(Assembly.GetExecutingAssembly().GetName().CodeBase).LocalPath;
+            Configuration configuration = ConfigurationManager.OpenExeConfiguration(assemblyPath);
+
+            return GetAkkaConfiguration(configuration, "akka/akka.app")
+                .WithFallback(GetAkkaConfiguration(configuration, "akka/akka.logging"))
+                .WithFallback(GetAkkaConfiguration(configuration, "akka/akka.actor"))
+                .WithFallback(GetAkkaConfiguration(configuration, "akka/akka.remote"))
+                .WithFallback(GetAkkaConfiguration(configuration, "akka/akka.cluster"))
+                .WithFallback(GetAkkaConfiguration(configuration, "akka/akka.petabridge"));
+        }
+
+        public static Config GetAkkaConfiguration(Configuration configuration, string sectionName)
+        {
+            return ((AkkaConfigurationSection)configuration.GetSection(sectionName)).AkkaConfig;
+        }
+    }
+}

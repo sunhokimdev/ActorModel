@@ -1,0 +1,483 @@
+﻿using Akka.Actor;
+using Akka.Event;
+using Akka.Routing;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MireroService.Actors
+{
+    //===================================================================
+    // 기본 예제 - 액터 클래스
+    //===================================================================
+    // 
+    // Why?
+    // 설계된 액터을 구현하기 위한 기본 예제다.
+    //
+    // What?
+    // 액터 코딩 컨벤션을 제공한다.
+    //
+    // How?
+    // HelloActor을 통해 액터 구현 방법을 익힌다.
+    //
+
+    //=======================================
+    // 액터 클래스 구성
+    //=======================================
+    // 
+    // public sealed class 액터 : ReceiveActor
+    // {
+    //      #region 메시지
+    //      1. 전용 메시지(Inner class)
+    //      #endregion
+    // 
+    //      2. 멤버 변수(로그, ...)
+    // 
+    //      3. 액터 Lifecycle 함수
+    //          - Props         // 필수
+    //          - Constructor   // 필수
+    //          - PostRestart
+    //          - PreStart
+    //          - PreRestart
+    //          - PostStop
+    //
+    //      4. 메시지 처리 함수(Handle)
+    // }
+    //
+
+    //=======================================
+    // 액터 클래스 이름 코딩 컨벤션
+    //=======================================
+    //
+    // 1. 액터 클래스는 public 접근 제어자를 사용한다.
+    // 2. 메시지 클래스는 sealed로 정의한다(기본적으로 상속 시키지 않는다).
+    // 3.1 Actor 접미사를 사용한다.
+    // 3.2 라우터 액터일 때는 RouterActor 접미사를 사용한다.
+    //
+    // 올바른 예. 
+    // public sealed class HelloActor : ReceiveActor
+    //
+    // 잘못된 예. 
+    // public class HelloActor : ReceiveActor       // sealed를 사용하지 않았다.
+    //
+    // 잘못된 예. 
+    //  class sealed HelloActor : ReceiveActor      // public 접근 제어자를 사용하지 않았다.
+    // 
+    // 잘못된 예. 
+    //  public sealed class Hello : ReceiveActor    // Actor 접미사를 사용하지 않았다.
+    //
+    //
+    // 올바른 예. (라우터 액터일 때)
+    // public sealed class HelloRouterActor : ReceiveActor
+    //
+    // 잘못된 예.
+    // public sealed class HelloActor : ReceiveActor    // RouterActor 접미사를 사용하지 않았다.
+    //
+    public sealed class HelloActor : ReceiveActor
+    {
+        #region 메시지
+        //=======================================
+        // Why?
+        //=======================================
+        //
+        // 모든 메시지(공용, 전용)는 Inner class로 정의한다.
+        // 모든 메시지(공용, 전용)는 솔루션 탐색기에 표현이 동일하다.
+        //
+
+        //=======================================
+        // 전용(Local) 메시지 클래스 구성
+        //=======================================
+        // 
+        // public sealed class 메시지
+        // {
+        //      1. 필드                   // public [타입] [이름] { get; private set; }
+        // 
+        //      2. 메시지 생성자
+        // }
+        //
+
+        //=======================================
+        // 액터 전용 메시지(Local) 코딩 컨벤션
+        //=======================================
+        // 
+        // 1. 메시지 클래스는 sealed로 정의한다(기본적으로 상속 시키지 않는다).
+        // 2. 데이터가 없는 메시지는 생성자을 생략한다.
+        // 3. 메시지 데이터는 필드로 정의한다
+        //      public [타입] [이름] { get; private set; }      // C# 6.0 이상에서는 "private set;"을 생략할 수 있다.
+        // 4. 메시지 데이터는 생성자에서 초기화된 후 변경시키지 않는다.
+        // 5. 목록 데이터도 불변을 제공한다.
+        //      IEnumerable
+        //      IReadOnlyCollection<T>
+        //      IReadOnlyList<T>
+        //      IReadOnlyDictionary<TKey, TValue>
+        // 6. 데이터 변수 이름에 타입은 명시하지 않는다.
+        // 7. 데이터 변수 이름에 단/복수를 명시한다.
+        // 8. 메시지는 "메시지", "명령 메시지", "이벤트 메시지"로 구분한다.
+        //		메시지				: (형용사) + 명사
+        //		명령 메시지			: 현재형 동사 + (형용사) + 명사
+        //		이벤트 메시지(시작)	: (형용사) + 명사 + 진행형 동사
+        //		이벤트 메시지(완료)	: (형용사) + 명사 + 과거형 동사
+        //
+        // 올바른 예. 1
+        //public sealed class Start { }
+        //
+        // 잘못된 예. 1
+        //public sealed class Start
+        //{
+        //    public Start()        // 데이터가 없는 메시지 클래스에서는 생성자를 생략한다.
+        //    {
+        //    }
+        //}
+        //
+        //
+        // 올바른 예. 2
+        //public sealed class Stop
+        //{
+        //    public string From { get; private set; }
+        //
+        //    public Stop(string from)
+        //    {
+        //        From = from;
+        //    }
+        //}
+        //
+        // 잘못된 예. 2
+        //public sealed class Stop
+        //{
+        //    public string From { get; set; }          // 'set;'은 반드시 'private set;'이어야 한다.
+        //    //...
+        //}
+        //
+        //
+        // 올바른 예. 3
+        // public IActorRef Hello { get; private set; }
+        // public IReadOnlyList<string> Names { get; private set; }
+        // 
+        // 잘못된 예. 3
+        // public IActorRef HelloActor { get; private set; }             // 타입(Actor)을 이름에 명시하지 않는다. HelloActor -> Hello
+        // public IReadOnlyList<string> NameList { get; private set; }   // 타입(List)을 이름에 명시하지 않는다. NameList -> Names
+        //
+        //
+        // 올바른 예. 4
+        // 메시지: (형용사) + 명사
+        //		Files						            // 명사
+        //		SelectedFiles				            // 형용사 + 명사
+        // 
+        // 명령 메시지: 현재형 동사 + (형용사) + 명사
+        //		CreateFiles					             // 현재형 동사 + 명사
+        //		CreateSelectedFiles		                 // 현재형 동사 + 형용사 + 명사
+        // 
+        // 이벤트 메시지(시작): (형용사) + 명사 + 진행형 동사
+        //		FilesCreating				             // 명사 + 진행형 동사
+        //		SelectedFilesCreating		             // 형용사 + 명사 + 진행형 동사
+        //
+        // 이벤트 메시지(완료): (형용사) + 명사 + 과거형 동사
+        //		FilesCreated					         // 명사 + 과거형 동사
+        //		SelectedFilesCreated		             // 형용사 + 명사 + 과거형 동사
+        //
+
+        public sealed class Start { }
+
+        public sealed class Stop
+        {
+            public string From { get; private set; }
+            public IReadOnlyList<string> Reasons { get; private set; }
+
+            public Stop(string from, List<string> reasons)
+            {
+                From = from;
+                Reasons = reasons;
+            }
+        }
+        #endregion
+
+        //=======================================
+        // 로그 멤버 변수 코딩 컨벤션
+        //=======================================
+        //
+        // 1. 로그 멤버 변수는 private 접근 제어자를 사용한다.
+        // 2. 로그 멤버 변수는 readonly를 사용한다.
+        // 3. 로그 멤버 변수 이름은 "_logger"이다.
+        // 
+        private readonly ILoggingAdapter _logger = Context.GetLogger();
+
+        //=======================================
+        // 액터 멤버 변수 코딩 컨벤션
+        //=======================================
+        //
+        // 1. 데이터 변수 이름에 타입은 명시하지 않는다.
+        // 2. 데이터 변수 이름에 단/복수를 명시한다.
+        // 3. 필드를 사용하지 않는다.
+        // 4. 멤버 변수는 대문자로 시작한다.
+        // 5. 생성자에서만 값을 초기화하는 변수 타입은 readonly 키워드를 사용한다.
+        //
+        //
+        // 올바른 예. 1
+        // public IActorRef Hello;
+        // public List<string> Names;
+        // 
+        // 잘못된 예. 1
+        // public IActorRef HelloActor;        // 타입(Actor)을 이름에 명시하지 않는다. HelloActor -> Hello
+        // public List<string> NameList        // 타입(List)을 이름에 명시하지 않는다. NameList -> Names
+        //
+        //
+        // 올바른 예. 2
+        // public string Name;
+        //
+        // 잘못된 예. 2.1
+        // public string Name { get; set; }    // 필드를 사용하지 않는다.
+        //
+        // 잘못된 예. 2.2
+        // public string _name;                // 멤버 변수는 대문자로 시작한다.
+        //                                     // 멤버 변수는 "_"을 사용하지 않는다.
+        //
+        // 잘못된 예. 2.3
+        // public string name;                  // 멤버 변수는 대문자로 시작한다.
+        //
+        //
+        // 올바른 예. 3       
+        // public readonly string Name;        // 생성자 초기화 후 변경이 없을 때
+        // public HelloActor(string name)
+        // {
+        //      Name = name;    
+        // }
+        //
+        // 잘못된 예. 3.
+        // public string Name;                  // readonly 키워드가 생략되어 있다(생성자 초기화 후 변경이 없을 때)
+        // public HelloActor(string name)
+        // {
+        //      Name = name;    
+        // }
+        //
+
+        public readonly ICancelable Schedule;
+
+        //=======================================
+        // 액터 생성 함수(Props, Constructor)
+        //=======================================
+        //
+        // INFO: Props 함수에서 Actor 성질(라우터, 장애 처리 전략, ...)을 결정한다.
+        //
+        // 올바른 예. 라우터와 장애 처리 전략이 없을 때(기본)
+        // public static Props Props()
+        // {
+        //      return Akka.Actor.Props.Create(() => new HelloActor());
+        // }
+        //
+        // 올바른 예. 라우터가 있을 때
+        // public static Props Props()
+        // {
+        //      return Akka.Actor.Props.Create(() => new HelloActor())
+        //          .WithRouter(FromConfig.Instance);    // App.config 파일 "akka.actor.deployment"에 Actor 라우터를 설정한다.
+        // }
+        //
+        // 올바른 예. 장애 처리 전략이 있을 때
+        // public static Props Props()
+        // {
+        //      return Akka.Actor.Props.Create(() => new HelloActor())
+        //          .WithSupervisorStrategy(new OneForOneStrategy(ex =>
+        //              {
+        //                  // 사용자 정의 장애 처리 전략(Restart, Stop, ...)
+        //
+        //                  // Akka 기본 장애 처리 전략
+        //                  return Akka.Actor.SupervisorStrategy.DefaultStrategy.Decider.Decide(ex);
+        //              }));
+        // }
+        //
+        // 올바른 예. 라우터와 장애 처리 전략이 있을 때
+        // public static Props Props()
+        // {
+        //      return Akka.Actor.Props.Create(() => new HelloActor())
+        //          .WithRouter(FromConfig.Instance)    // App.config 파일 "akka.actor.deployment"에 Actor 라우터를 설정한다.
+        //          .WithSupervisorStrategy(new OneForOneStrategy(ex =>
+        //              {
+        //                  // 사용자 정의 장애 처리 전략(Restart, Stop, ...)
+        //
+        //                  // Akka 기본 장애 처리 전략
+        //                  return Akka.Actor.SupervisorStrategy.DefaultStrategy.Decider.Decide(ex);
+        //              }));
+        // }
+        //
+        public static Props Props()
+        {
+            return Akka.Actor.Props.Create(() => new HelloActor());
+        }
+
+        public HelloActor()
+        {
+            CreateChildActors();
+			RegisterMessageHandlers();
+
+            //
+            // INFO: Start 메시지는 1초 간격으로 메시지를 보낸다.
+            //
+
+            Schedule = Context
+                .System
+                .Scheduler
+                .ScheduleTellRepeatedlyCancelable(
+                    TimeSpan.Zero,              // 메시지 초기 대기 시간
+                    TimeSpan.FromSeconds(1),    // 메시지 간격(시간)
+                    Self,                       // 메시지 보내는 액터
+                    new Start(),                // 메시지 
+                    Self);                      // 메시지 받는 액터
+        }
+
+        protected override void PostStop()
+        {
+            base.PostStop();
+
+            //
+            // INFO: 1초 간격으로 보내던 메시지를 취소한다.
+            //
+
+            Schedule.Cancel();
+        }
+
+        //=======================================
+        // 자식 액터 생성
+        //=======================================
+        private void CreateChildActors()
+        {
+            //
+            // 설계된 모든 자식 정적 Actor 생성을 구현한다.
+            //
+
+            // 예.
+            //Context.ActorOf(ChildActor.Props(), ActorPaths.ChildActor.Name);
+        }
+
+        //=======================================
+        // 메시지 처리(Handle) 등록 함수
+        //=======================================
+        private void RegisterMessageHandlers()
+        {
+            //
+            // TODO: 메시지 처리 함수를 등록한다.
+            //
+
+            //=======================================
+            // 액터 메소드 코딩 컨벤션
+            //=======================================
+            //
+            // 1. 메시지 처리 함수는 "Receive<T>(_ => Handle(_))" 형식으로 등록한다.
+            // 2. 메시지 처리 함수(Receive에서 호출되는 함수) 이름은 "Handle"이다.
+            // 3. 생성과 관련된 함수(Props, Constructor)를 제외한 모든 함수는 privatie이다.
+            // 
+            //
+            // 올바른 예. 1
+            // Receive<Start>(_ => Handle(_));
+            // 
+            // 잘못된 예. 1
+            // Receive<Start>(start => Handle(start));			// start		-> _
+            // 
+            // 
+            // 올바른 예. 2
+            // private void Handle(Start msg) { ... }
+            // 
+            // 잘못된 예. 2
+            // public void HandleStart(Start msg) { ... }       // public       -> private
+            //                                                  // HandleStart  -> Handle
+            // 잘못된 예. 2
+            // public void DoSomething(int x) { ... }           // public       -> private
+            //
+
+            Receive<Start>(_ => Handle(_));
+            Receive<Stop>(_ => Handle(_));
+        }
+        
+        //
+        // TODO: Receive 함수에서 호출되는 모든 메시지 처리 함수를 구현한다.
+        //
+        private void Handle(Start msg)
+        {
+            _logger.Info("Hello! MireroSystem.");
+
+            //=======================================
+            // 고정 Sender 메시지 보내기 코딩 컨벤션
+            //=======================================
+            // 
+            // 1. 변수로 메시지 보낸 액터 이름을 표시한다.
+            // 2. 변수를 통해 메시지를 보낸다.
+            //
+            // 올바른 예.
+            // IActorRef loader = Sender;           // 메시지 보낸 액터을 변수 이름을 통해 알 수 있다.
+            // loader.Tell( ... );
+            //
+            // 잘못된 예.
+            // Sender.Tell( ... );                   // 메시지 보낸 액터를 알 수 없다.
+            //
+
+            //=======================================
+            // 동적 Sender 메시지 보내기 코딩 컨벤션
+            //=======================================
+            //
+            // 1. 변수로 메시지 보낸 액터 이름을 표시하지 않는다.
+            //    Why? 메시지 보낸 액터 이름을 고정 시킬 수 없다.
+            //
+            // 올바른 예.
+            // Sender.Tell( ... );                   // 메시지 보낸 액터를 고정 시킬 수 없다
+            //
+            // 잘못된 예.
+            // IActorRef loader = Sender;           // 메시지 보낸 액터을 고정 시켰다.
+            // loader.Tell( ... );
+            //
+
+            //=======================================
+            // 부모 액터(Context.Parent) 메시지 보내기 코딩 컨벤션
+            //=======================================
+            // 
+            // 1. 변수로 부모 액터 이름을 표시한다.
+            // 2. 변수를 통해 메시지를 보낸다.
+            //
+            // 올바른 예.
+            // IActorRef loader = Context.Parent;   // 부모 액터을 변수 이름을 통해 알 수 있다.
+            // loader.Tell( ... );
+            //
+            // 잘못된 예.
+            // Context.Parent.Tell( ... );           // 부모 액터를 알 수 없다.
+            //
+
+            //=======================================
+            // 자식 액터(Context.Child) 메시지 보내기 코딩 컨벤션
+            //=======================================
+            //
+            // 1. 변수로 자식 액터 이름을 표시한다.
+            // 2. 변수를 통해 메시지를 보낸다.
+            //
+            // 올바른 예.
+            // IActorRef loader = Context.Child(ActorPaths.LoaderActor.Name);
+            // loader.Tell( ... );
+            //
+            // 잘못된 예.
+            // Context.Child(ActorPaths.LoaderActor.Name).Tell( ... );
+            //
+
+            //=======================================
+            // 자식 액터들(Context.GetChildren) 메시지 보내기 코딩 컨벤션
+            //=======================================
+            //
+            // 1. 변수로 자식 액터 이름을 표시하지 않는다.
+            //    Why? 자식 액터 이름을 고정 시킬 수 없다.
+            //
+            // 올바른 예.
+            // foreach (IActorRef loader in Context.GetChildren())
+            // {
+            //    loader.Tell( ... );
+            // }
+            //
+        }
+
+        private void Handle(Stop msg)
+        {
+            _logger.Warning(msg.From);
+
+            foreach (string reason in msg.Reasons)
+            {
+                _logger.Warning(reason);
+            }
+        }
+    }
+}

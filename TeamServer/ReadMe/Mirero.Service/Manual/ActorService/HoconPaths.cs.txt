@@ -1,0 +1,50 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MireroService.ActorService
+{
+    //===================================================================
+    // HOCON 환경 설정 접근 경로 관리 클래스
+    //===================================================================
+    //
+    // Why?
+    // 서비스 구동을 위한 필수 환경 설정 경로(HOCON 계층 구조)를 관리한다.
+    //
+    // What?
+    // 서비스 구동을 위한 필수 환경 설정 경로를 모두 정의한다.
+    //  예.
+    //      akka.service.name
+    //      akka.service.description
+    //      akka.system.name
+    //
+    // How?
+    // 예. App.config 환경 파일 
+    //	<akka.app>
+    //		<hocon>
+    //			<![CDATA[
+    //              akka {
+    //                  service {
+    //				        ###################################
+    //				        # 서비스
+    //				        ###################################
+    //				        name = "BLUEService"
+    //                      description = "MireroSystem Super Service"
+    //                  }
+    //              }
+    //			]]>
+    //		</hocon>
+    //	</akka.app>
+    //
+    // 예. HOCON "akka.service.name" 값 얻기: "BLUEService"
+    //string serviceName = config.GetString(HoconPaths.ServiceName);
+    //
+    public static class HoconPaths
+    {
+        public static readonly string ServiceName = "akka.service.name";
+        public static readonly string ServiceDescription = "akka.service.description";
+        public static readonly string ActorSystemName = "akka.system.name";
+    }
+}

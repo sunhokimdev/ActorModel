@@ -1,0 +1,59 @@
+﻿using AkkaHelpers;
+using MireroService.Actors;
+
+namespace MireroService
+{
+    //===================================================================
+    // 정적 Actor 경로 관리 클래스
+    //===================================================================
+    //
+    // Why?
+    // Actor는 계층 구조를 갖는다.
+    // 특정 Actor을 찾기 위해서는 Actor가 위치한 계층 깊이에 영향을 받는다.
+    // ActorPaths 클래스는 Actor가 위치한 계층 깊이와 상관없이 바로 접근할 수 있도록 한다.
+    //
+    // What?
+    // 정적 Actor(컴파일 타임에 계층 구조가 결되는 Actor)는 모두 ActorPaths 클래스에 정의한다.
+    //
+    // How?
+    // - Actor을 생성할 때 Actor 이름 얻기
+    //      ActorPaths.HelloActor.Name       // -> HelloActor
+    // - Actor 경로 얻기
+    //      ActorPaths.HelloActor.Path       // -> /user/HelloActor   "/user 자식일 때"
+    //
+    public static class ActorPaths
+    {
+        //=======================================
+        // Actor 경로 코딩 컨벤션
+        //=======================================
+        //
+        // 1. Top Level 형식(/user 자식 Actor일 때)
+        //    public static readonly ActorMetaData [Actor 클래스 이름] = new ActorMetaData(
+        //              typeof([Actor 클래스 이름]).Name);
+        //
+        //      예. Actor 클래스 이름: HelloActor
+        //
+        //    public static readonly ActorMetaData HelloActor = new ActorMetaData(
+        //              typeof(HelloActor).Name);  
+        //
+        // 2. Child Level 형식(/user 자식 Actor가 아닐 때)
+        //    public static readonly ActorMetaData [자식 Actor 클래스 이름] = new ActorMetaData(
+        //              typeof([자식 Actor 클래스 이름]).Name, 
+        //              [부모 Actor 클래스 이름]);
+        //
+        //      예. 
+        //          부모 Actor 클래스 이름: TopLevelActor
+        //          자식 Actor 클래스 이름: ChildLevelActor
+        //
+        //    // 부모 Actor
+        //    public static readonly ActorMetaData TopLevelActor 
+        //          = new ActorMetaData(typeof(TopLevelActor).Name);
+        //
+        //    // 자식 Actor
+        //    public static readonly ActorMetaData ChildLevelActor 
+        //          = new ActorMetaData(typeof(ChildLevelActor).Name, TopLevelActor);
+        //
+
+        public static readonly ActorMetaData HelloActor = new ActorMetaData(typeof(HelloActor).Name);
+    }
+}

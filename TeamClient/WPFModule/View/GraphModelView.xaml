@@ -1,0 +1,72 @@
+﻿<UserControl x:Class="TeamClient.ViewModel.GraphModelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:TeamClient.ViewModel"             
+             xmlns:Key="clr-namespace"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <StackPanel Height="350" Orientation="Horizontal" Margin="10" VerticalAlignment="Top">
+        <ListView HorizontalAlignment="Center" Height="350" VerticalAlignment="Top" Width="190" ItemsSource="{Binding ListItems}">
+            <ListView.View>
+                <GridView AllowsColumnReorder="True">
+                    <GridViewColumn Header="로컬 이름" >
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock TextAlignment="Center" Foreground="{Binding ForegroundColor}" Width="130" Text="{Binding LocalName}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="{Binding LocalCount, UpdateSourceTrigger=PropertyChanged}" Width="40">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox VerticalContentAlignment="Center" Tag="{Binding LocalID}" IsChecked="{Binding IsChecked}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        
+        <Grid Margin="10,0,0,0" Width="550">
+            <Canvas>
+                <Line X1="70" X2="550" Y1="40" Y2="40" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="75" Y2="75" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="110" Y2="110" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="145" Y2="145" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="180" Y2="180" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="215" Y2="215" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="250" Y2="250" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="285" Y2="285" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="550" Y1="320" Y2="320" StrokeThickness="0.5" Stroke ="Black"/>
+                <Line X1="70" X2="70" Y1="0" Y2="350" StrokeThickness="2" Stroke ="Black"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="15" FontSize="20" Content="ㅡ 10"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="50" FontSize="20" Content="ㅡ 20"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="85" FontSize="20" Content="ㅡ 30"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="120" FontSize="20" Content="ㅡ 40"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="155" FontSize="20" Content="ㅡ 50"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="190" FontSize="20" Content="ㅡ 60"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="225" FontSize="20" Content="ㅡ 70"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="260" FontSize="20" Content="ㅡ 80"/>
+                <Label Foreground="DarkBlue" Canvas.Bottom="295" FontSize="20" Content="ㅡ 90"/>
+            </Canvas>
+            <Border BorderBrush="Black" BorderThickness="2"/>
+            <ItemsControl ItemsSource="{Binding ListLine}" Margin="0,0,10,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Line X1="{Binding From.X}" Y1="{Binding From.Y}"
+                      X2="{Binding To.X}" Y2="{Binding To.Y}"
+                      Stroke="{Binding StrokeColor}" StrokeThickness="2">
+                        </Line>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,179 @@
+﻿목차
+1. 메시지 종류
+2. 메시지 차이점
+3. 메시지 구분
+4. 메시지 위치
+5. 메시지 구분별 정의
+6. 전용 메시지(Remote) 부모 클래스 이름 코딩 컨벤션
+7. 공용 메시지(Local, Remote) 부모 클래스 이름 코딩 컨벤션
+8. 메시지 클래스 구성
+9. 메시지 클래스 코딩 컨벤션
+
+
+1. 메시지 종류
+    전용 메시지, 공용 메시지
+
+
+2. 메시지 차이점
+    전용 메시지 : 메시지 수신자 = 1 : 1
+    공용 메시지 : 메시지 수신자 = 1 : N (메시지 수신자 N은 메시지 변화에 대한 영향을 함께 한다.)
+
+
+3. 메시지 구분
+    Local: 메시지 발신자와 수신자 모두 같은 어셈블리에 있을 때
+    Remote: 메시지 발신자와 수신자 모두 같은 어셈블리에 없을 때
+            (발신자와 수신자 모두 공유할 참조 어셈블리가 필요하다.)
+
+
+4. 메시지 위치
+    모든 메시지는 Inner class(내부 클래스)로 정의한다.
+
+
+5. 메시지 구분별 정의
+    5.1 전용 메시지(Local) 정의
+        public class [액터 클래스]Actor : ReceiveActor
+        {
+            #region Messages
+            // 전용 메시지(Local)
+            public class Start { }
+            #endregion
+        }
+
+    5.2 전용 메시지(Remote) 정의
+        public class [액터 클래스]ActorMessage
+        {
+            #region Messages
+            // 전용 메시지(Remote)
+            public class Start { }
+            #endregion
+        }
+
+    5.3 공용 메시지(Local, Remote) 정의
+        public class [범주]Message
+        {
+            #region Messages
+            // 공용 메시지
+            public class Start { }
+            #endregion
+        }
+
+
+6. 전용 메시지(Remote) 부모 클래스 이름 코딩 컨벤션
+    6.1 액터 클래스 이름에 Message 접미사를 사용한다.
+        [액터 클래스 이름]Message
+
+    예. 올바른 예
+    public sealed class HelloActorMessage           // 액터 클래스 이름: HelloActor
+    public sealed class HelloRouterActorMessage     // 액터 클래스 이름: HelloRouterActor
+        
+    예. 잘못된 예
+    public sealed class HelloMessage                // 액터 클래스 이름: HelloActor
+                                                    //      HelloMessage            -> HelloActorMessage
+    public sealed class HelloRouterActorMessage     // 액터 클래스 이름: HelloRouterActor
+                                                    //      HelloRouterActorMessage -> HelloRouterActorMessage
+
+
+7. 공용 메시지(Local, Remote) 부모 클래스 이름 코딩 컨벤션
+    7.1 클래스 이름에 Message 접미사를 사용한다.
+        [범주 이름]Message
+        
+    예. 올바른 예
+    public sealed class ServiceMessage
+        
+    예. 잘못된 예
+    public sealed class Service         // 클래스 이름에 Message 접미사를 사용하지 않았다.
+
+
+8. 메시지 클래스 구성
+	예.
+	public sealed class 메시지
+	{
+	     1. 필드							// public [타입] [이름] { get; private set; }
+	
+	     2. 메시지 생성자					// 필드 초기화
+	}
+
+
+9. 메시지 클래스 코딩 컨벤션
+    9.1 메시지 클래스는 sealed로 정의한다(기본적으로 상속 시키지 않는다).
+
+    9.2 데이터가 없는 메시지는 생성자을 생략한다.
+
+    9.3 메시지 데이터는 필드로 정의한다
+        public [타입] [이름] { get; private set; }      
+        // C# 6.0 이상에서는 "private set;"을 생략할 수 있다.
+
+    9.4 메시지 데이터는 생성자에서 초기화된 후 변경시키지 않는다.
+
+    9.5 목록 데이터도 불변을 제공한다.
+         IEnumerable
+         IReadOnlyCollection<T>
+         IReadOnlyList<T>
+         IReadOnlyDictionary<TKey, TValue>
+
+    9.6 데이터 변수 이름에 타입은 명시하지 않는다.
+
+    9.7 데이터 변수 이름에 단/복수를 명시한다.
+
+    9.8 메시지는 "메시지", "명령 메시지", "이벤트 메시지"로 구분한다.
+	    메시지				: (형용사) + 명사
+	    명령 메시지			: 현재형 동사 + (형용사) + 명사
+	    이벤트 메시지(시작)	: (형용사) + 명사 + 진행형 동사
+	    이벤트 메시지(완료)	: (형용사) + 명사 + 과거형 동사
+
+    예1. 올바른 예
+    public sealed class Start { }
+    
+    예1. 잘못된 예
+    public sealed class Start
+    {
+        public Start()        // 데이터가 없는 메시지 클래스에서는 생성자를 생략한다.
+        {
+        }
+    }
+    
+
+    예2. 올바른 예
+    public sealed class Stop
+    {
+        public string From { get; private set; }
+    
+        public Stop(string from)
+        {
+            From = from;
+        }
+    }
+    
+    예2. 잘못된 예
+    public sealed class Stop
+    {
+        public string From { get; set; }          // 'set;'은 반드시 'private set;'이어야 한다.
+        //...
+    }
+    
+    
+    예3. 올바른 예
+    public IActorRef Hello { get; private set; }
+    public IReadOnlyList<string> Names { get; private set; }
+     
+    예3. 잘못된 예
+    public IActorRef HelloActor { get; private set; }             // 타입(Actor)을 이름에 명시하지 않는다. HelloActor -> Hello
+    public IReadOnlyList<string> NameList { get; private set; }   // 타입(List)을 이름에 명시하지 않는다. NameList -> Names
+    
+    
+    예4. 올바른 예
+        예4.1: 메시지: (형용사) + 명사
+    	    Files						            // 명사
+    	    SelectedFiles				            // 형용사 + 명사
+     
+        예4.2: 명령 메시지: 현재형 동사 + (형용사) + 명사
+    	    CreateFiles					             // 현재형 동사 + 명사
+    	    CreateSelectedFiles		                 // 현재형 동사 + 형용사 + 명사
+     
+        예4.3: 이벤트 메시지(시작): (형용사) + 명사 + 진행형 동사
+    	    FilesCreating				             // 명사 + 진행형 동사
+    	    SelectedFilesCreating		             // 형용사 + 명사 + 진행형 동사
+    
+        예4.4 이벤트 메시지(완료): (형용사) + 명사 + 과거형 동사
+    	    FilesCreated					         // 명사 + 과거형 동사
+    	    SelectedFilesCreated		             // 형용사 + 명사 + 과거형 동사

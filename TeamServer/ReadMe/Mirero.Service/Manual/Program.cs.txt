@@ -1,0 +1,39 @@
+﻿using MireroService.ActorService;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MireroService
+{
+    class Program
+    {
+        //
+        // INFO: 서비스 설치하기
+        //  1. 관리자 모드로 콘솔 창을 연다.
+        //  2. install 옵션을 추가해서 콘솔 명령을 실행 시킨다.
+        //
+        //      예. 단순 설치
+        //      Service.exe install
+        //
+        //      예. 세부 옵션 지정 설치
+        //      Service.exe install -username:DOMAIN\ServiceAccount -password:itsASecret -servicename:AwesomeService –autostart
+        //
+
+        //
+        // INFO: 설비스 제거하기
+        //  1. 관리자 모드로 콘솔 창을 연다.
+        //  2. uninstall 옵션을 추가해서 콘솔 명령을 실행 시킨다.
+        //
+        //      예.
+        //      Service.exe uninstall
+        //
+
+        static void Main(string[] args)
+        {
+            var actorServiceConfigurator = new ActorServiceConfigurator();
+            actorServiceConfigurator.Execute();
+        }
+    }
+}

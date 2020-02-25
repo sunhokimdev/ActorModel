@@ -1,0 +1,176 @@
+﻿using Akka.Actor;
+using Akka.Configuration;
+using Akka.Configuration.Hocon;
+using MireroService.Actors;
+using Petabridge.Cmd.Host;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Topshelf;
+using Topshelf.Logging;
+using Topshelf.Runtime;
+
+namespace MireroService.ActorService
+{
+    //===================================================================
+    // 서비스 이벤트 처리 클래스
+    //===================================================================
+    //
+    // Why?
+    // Topshelf는 ServiceControl 클래스를 통해 서비스 이벤트(시작/중지) 처리를 제공한다.
+    // ServiceControl 클래스는 서비스 시작과 중지를 취소 시킬 수 있다.
+    //
+    // What?
+    // Topshelf을 이용해 서비스 시작과 중지 이벤트를 처리한다.
+    // 서비스 시작을 위한 조건을 만족 시키지 못하면 시작을 취소한다(Start 함수에서 "false"을 리턴한다.).
+    // 서비스 중지를 위한 조건을 만족 시키지 못하면 중지를 취소한다(Stop 함수에서 "false"을 리턴한다).
+    // Actor System을 생성한다.
+    // Petabridge.Cmd.Host을 DEBUG일 때만 서비스를 시작한다.
+    // 
+    // How?
+    // - 서비스 시작: bool Start(HostControl hostControl)
+    //      결과 값이 'true'일 때 서비스가 시작 한다.
+    //      결과 값이 'false'일 때 서비스가 시작하지 않는다.
+    // - 서비스 중지: bool Stop(HostControl hostControl)
+    //      결과 값이 'true'일 때 서비스가 중지 한다.
+    //      결과 값이 'false'일 때 서비스가 중지하지 않는다.
+    //
+    public sealed class ActorServiceHost : ServiceControl
+    {
+        private readonly Config _config;
+        private readonly ActorServiceCommandLine _commandLine;
+        private ActorSystem _system;
+
+        public ActorServiceHost(Config config, ActorServiceCommandLine commandLine)
+        {
+            _config = config;
+            _commandLine = commandLine;
+        }
+
+        //=======================================
+        // 서비스 시작
+        //=======================================
+        public bool Start(HostControl hostControl)
+        {
+            _system = CreateActorSystem(_config);
+
+#if DEBUG
+            StartPetabridgeCmd();
+#endif
+
+            LogCommandLine();
+            CreateTopLevelActors();
+
+            //
+            // INFO: App.config(HOCON)에 있는 서비스 옵션 정보는
+            //      계층 경로를 바로 접근하여 데이터를 얻을 수 있다.
+            //
+            // 예. App.config 환경 파일 
+            //	<akka.app>
+            //		<hocon>
+            //			<![CDATA[
+            //              akka {
+            //                  service {
+            //				        clipper {
+            //                          aliase = CLIPPER02
+            //                          controlCenterIP = 127.0.0.1
+            //                          controlCenterPort = 9000
+            //                          saveActorCount = 10
+            //                      }
+            //                  }
+            //              }
+            //			]]>
+            //		</hocon>
+            //	</akka.app>
+            //
+            // string aliase = config.GetString(akka.service.clipper.aliase);
+            // int saveActorCount = config.GetInt(akka.service.clipper.saveActorCount);
+            //
+
+            return true;
+        }
+
+        private ActorSystem CreateActorSystem(Config config)
+        {
+            return ActorSystem.Create(
+                // Actor System 이름
+                config.GetString(HoconPaths.ActorSystemName),
+                // Actor System 환경 정보
+                config);   
+        }
+
+        private void StartPetabridgeCmd()
+        {
+            //
+            // INFO: PetabridgeCmd는 현재 Actor 계층 구조 런타임에 파악 등
+            //       보조적인 역활로만 사용한다.
+            //       (현재는 디버그 모드에서만 실행한다.)
+            //
+            // PetabridgeCmd 사용 예.
+            //
+            // 1. 접속할 때: 기본 IP와 Port는 127.0.0.1과 9110 이다.
+            // C:\>pbm 127.0.0.1:9110
+            //    successfully connected to[::ffff:127.0.0.1]:9110
+            //    Commands downloaded from server.type `help` to see what's available
+            //
+            // 2. 접속된 상태에서 Actor System 이름 확인하기
+            // [127.0.0.1:9110] pbm > actor system
+            //    akka://BLUEService
+            //
+            // 3. 접속된 상태에서 Actor 계층 구조 확인하기
+            // [127.0.0.1:9110] pbm > actor hierarchy
+            //    /user
+            //    /user/HelloActor
+            //    /user/pbm-uptime
+            //    /user/petabridge.cmd
+            //    /user/petabridge.cmd/127.0.0.1%3A51451
+            //    /user/petabridge.cmd/127.0.0.1%3A51451/actor
+            //    /user/petabridge.cmd-log-memorizer
+            //
+
+            PetabridgeCmd
+                .Get(_system)
+                .Start();
+        }
+
+        private void LogCommandLine()
+        {
+            //
+            // INFO: 서비스 커맨드 라인 매개변수 값을 로그로 출력한다.
+            //
+
+            _commandLine.Log(_system.Log);
+        }
+
+        //=======================================
+        // Top Level Actor 생성(/user 자식 Actor)
+        //=======================================
+        private void CreateTopLevelActors()
+        {
+            //
+            // TODO: 설계된 모든 Top Level 정적 Actor 생성을 구현한다.
+            //
+
+            _system.ActorOf(HelloActor.Props(), ActorPaths.HelloActor.Name);
+        }
+
+        //=======================================
+        // 서비스 중지
+        //=======================================
+        public bool Stop(HostControl hostControl)
+        {
+            //
+            // INFO: Visual Studio로 디버깅일 때는 "콘솔 창"에서 Ctrl+C을 입력하면
+            //       Topshelf가 Stop 이벤트를 발생 시켜 Stop 함수를 디버깅할 수 있다
+            //       (Stop 함수를 디버깅할 수 있다).
+            //
+
+            _system.Terminate().Wait();
+            return true;
+        }
+    }
+}
+
